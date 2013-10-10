@@ -46,6 +46,8 @@ fn main() {
         let p = Path(crate.name);
         if !p.exists() {
             assert!(run("git", [~"clone", crate.repo.clone(), crate.name.clone()], None, None));
+        } else {
+            assert!(run("git", [~"pull", crate.repo.clone()], None, None));
         }
         let cmds = crate.commands.clone().unwrap_or(~[]);
         for command in cmds.iter() {
