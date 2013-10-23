@@ -1,3 +1,4 @@
+#[feature(globs)];
 extern mod extra;
 
 use extra::json;
@@ -47,13 +48,19 @@ fn main() {
         if !p.exists() {
             assert!(run("git", [~"clone", crate.repo.clone(), crate.name.clone()], None, None));
         } else {
-            assert!(run("git", [~"pull", crate.repo.clone()], None, None));
+            assert!(run("git", [~"pull", ~"origin", ~"master"], Some(&p), None));
         }
         let cmds = crate.commands.clone().unwrap_or(~[]);
         for command in cmds.iter() {
-            assert!(run(command.program, command.args, Some(&p), command.env.clone()));
+            if !run(command.program, command.args, Some(&p), command.env.clone()) {
+                error!("Warning: building {} failed running {}", crate.name, command.program);
+                continue;
+            }
         }
-        assert!(run("rustdoc", [crate.crate_root.clone()], None, None));
+        if !run("rustdoc", [crate.crate_root.clone()], None, None) {
+            error!("Warning: documenting {} failed", crate.name);
+            continue;
+        }
     }
 
     build_index(config);
@@ -78,9 +85,9 @@ fn run(prog: &str, args: &[~str], workdir: Option<&Path>, env: Option<~[(~str, ~
     let opts = ProcessOptions { env: env, dir: workdir, ..ProcessOptions::new() };
     let out = Process::new(prog, args, opts).finish_with_output();
     if out.status != 0 {
-        error2!("{} {:?} returned {}", prog, args, out.status);
-        info2!("stdout: {}", from_utf8(out.output));
-        info2!("stderr: {}", from_utf8(out.error));
+        error!("{} {:?} returned {}", prog, args, out.status);
+        info!("stdout: {}", from_utf8(out.output));
+        info!("stderr: {}", from_utf8(out.error));
         return false;
     }
     true
