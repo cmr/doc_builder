@@ -2,7 +2,6 @@
 extern mod extra;
 
 use extra::json;
-use extra::flatpipes::flatteners::FromReader;
 use extra::getopts::groups::*;
 
 use extra::serialize::{Decodable, Encodable};
@@ -38,13 +37,13 @@ fn main() {
         Err(y) => { println(usage(y.to_err_msg(), opts)); fail!() },
     };
 
-    let path = Path(args.opt_str("config").unwrap());
-    let mut decoder: json::Decoder = FromReader::from_reader(std::io::file_reader(&path).unwrap());
-
+    let path = Path::new(args.opt_str("config").unwrap());
+    let json = json::from_reader(std::io::file_reader(&path).unwrap()).unwrap();
+    let mut decoder = json::Decoder(json);
     let config: Config = Decodable::decode(&mut decoder);
 
     for crate in config.iter() {
-        let p = Path(crate.name);
+        let p = Path::new(crate.name.clone());
         if !p.exists() {
             assert!(run("git", [~"clone", crate.repo.clone(), crate.name.clone()], None, None));
         } else {
@@ -57,7 +56,7 @@ fn main() {
                 continue;
             }
         }
-        if !run("rustdoc", [crate.crate_root.clone()], None, None) {
+        if !run("rustdoc", [crate.name + "/" + crate.crate_root.clone()], None, None) {
             error!("Warning: documenting {} failed", crate.name);
             continue;
         }
@@ -68,7 +67,7 @@ fn main() {
 
 fn build_index(c: Config) {
     use std::rt::io::*;
-    let mut f = file::open(&Path("doc/index.html"), CreateOrTruncate, ReadWrite);
+    let mut f = file::open(&Path::new("doc/index.html"), CreateOrTruncate, ReadWrite);
     f.write(bytes!("<!doctype html>
     <html><head><title>Rust Library Documentation</title></head><body><ul>\n"));
     for crate in c.move_iter() {
