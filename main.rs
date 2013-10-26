@@ -1,6 +1,10 @@
 #[feature(globs)];
 extern mod extra;
 
+use std::rt::io;
+use std::rt::io::Reader;
+use std::rt::io::{Open, Read};
+
 use extra::json;
 use extra::getopts::groups::*;
 
@@ -38,7 +42,8 @@ fn main() {
     };
 
     let path = Path::new(args.opt_str("config").unwrap());
-    let json = json::from_reader(std::io::file_reader(&path).unwrap()).unwrap();
+    let mut file = io::file::open(&path, Open, Read).unwrap();
+    let json = json::from_reader(&mut file as &mut Reader).unwrap();
     let mut decoder = json::Decoder(json);
     let config: Config = Decodable::decode(&mut decoder);
 
