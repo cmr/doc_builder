@@ -15,6 +15,7 @@ use extra::serialize::{Decodable, Encodable};
 struct CrateConfig {
     name: ~str,
     repo: ~str,
+    branch: Option<~str>,
     author: ~str,
     commands: Option<~[Command]>,
     crate_root: ~str,
@@ -48,11 +49,12 @@ fn main() {
     let config: Config = Decodable::decode(&mut decoder);
 
     for crate in config.iter() {
+        let branch = crate.branch.clone().unwrap_or(~"master");
         let p = Path::new(crate.name.clone());
         if !p.exists() {
-            assert!(run("git", [~"clone", crate.repo.clone(), crate.name.clone()], None, None));
+            assert!(run("git", [~"clone", ~"-b", branch, crate.repo.clone(), crate.name.clone()], None, None));
         } else {
-            assert!(run("git", [~"pull", ~"origin", ~"master"], Some(&p), None));
+            assert!(run("git", [~"pull", ~"origin", branch], Some(&p), None));
         }
         let cmds = crate.commands.clone().unwrap_or(~[]);
         for command in cmds.iter() {
