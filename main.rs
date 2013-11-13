@@ -1,9 +1,7 @@
 #[feature(globs)];
 extern mod extra;
 
-use std::rt::io;
-use std::rt::io::Reader;
-use std::rt::io::{Open, Read};
+use std::io::*;
 
 use extra::json;
 use extra::getopts::groups::*;
@@ -43,7 +41,7 @@ fn main() {
     };
 
     let path = Path::new(args.opt_str("config").unwrap());
-    let mut file = io::file::open(&path, Open, Read).unwrap();
+    let mut file = File::open(&path).unwrap();
     let json = json::from_reader(&mut file as &mut Reader).unwrap();
     let mut decoder = json::Decoder(json);
     let config: Config = Decodable::decode(&mut decoder);
@@ -73,8 +71,7 @@ fn main() {
 }
 
 fn build_index(c: Config) {
-    use std::rt::io::*;
-    let mut f = file::open(&Path::new("doc/index.html"), CreateOrTruncate, ReadWrite);
+    let mut f = File::open_mode(&Path::new("doc/index.html"), Truncate, ReadWrite);
     f.write(bytes!("<!doctype html>
     <html><head><title>Rust Library Documentation</title></head><body><ul>\n"));
     for crate in c.move_iter() {
@@ -90,7 +87,7 @@ fn run(prog: &str, args: &[~str], workdir: Option<&Path>, env: Option<~[(~str, ~
 
     let opts = ProcessOptions { env: env, dir: workdir, ..ProcessOptions::new() };
     let out = Process::new(prog, args, opts).finish_with_output();
-    if out.status != 0 {
+    if !out.status.success() {
         error!("{} {:?} returned {}", prog, args, out.status);
         info!("stdout: {}", from_utf8(out.output));
         info!("stderr: {}", from_utf8(out.error));
