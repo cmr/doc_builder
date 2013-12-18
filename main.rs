@@ -1,4 +1,6 @@
 #[feature(globs)];
+#[pkgid="buildem"];
+
 extern mod extra;
 
 use std::io::*;
@@ -43,7 +45,7 @@ fn main() {
     let path = Path::new(args.opt_str("config").unwrap());
     let mut file = File::open(&path).unwrap();
     let json = json::from_reader(&mut file as &mut Reader).unwrap();
-    let mut decoder = json::Decoder(json);
+    let mut decoder = json::Decoder::new(json);
     let config: Config = Decodable::decode(&mut decoder);
 
     for crate in config.iter() {
@@ -86,7 +88,7 @@ fn run(prog: &str, args: &[~str], workdir: Option<&Path>, env: Option<~[(~str, ~
     use std::str::from_utf8;
 
     let opts = ProcessOptions { env: env, dir: workdir, ..ProcessOptions::new() };
-    let out = Process::new(prog, args, opts).finish_with_output();
+    let out = Process::new(prog, args, opts).unwrap().finish_with_output();
     if !out.status.success() {
         error!("{} {:?} returned {}", prog, args, out.status);
         info!("stdout: {}", from_utf8(out.output));
